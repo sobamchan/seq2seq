@@ -1,0 +1,18 @@
+embedding_size:
+  50
+hidden_size:
+  30
+n_layers:
+  3
+bidirec:
+  True
+lr:
+  0.001
+batch_size:
+  128
+epoch:
+  1
+load_model_dir:
+  null
+load_vocab_dir:
+  null
