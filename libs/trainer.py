@@ -19,7 +19,12 @@ class Trainer(object):
 
         logger.info('initializing')
         self.args = args
-        self.use_cuda = torch.cuda.is_available()
+        if args.gpu:
+            torch.cuda.set_device(args.gpu)
+            self.use_cuda = torch.cuda.is_available()
+        else:
+            self.use_cuda = False
+
         src, tgt = utils.get_corpus('./small_parallel_enja/train.ja',
                                     './small_parallel_enja/train.en')
 

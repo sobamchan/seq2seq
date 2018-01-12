@@ -49,6 +49,8 @@ if __name__ == '__main__':
     parser.add_argument('-t', default='train', help='type <train or test>')
     parser.add_argument('-o', default=None,
                         help='output dir (default: create with datetime)')
+    parser.add_argument('--gpu', dest='g', default=None, type=int,
+                        help='gpu to use')
     pargs = parser.parse_args()
 
     args = Args(pargs.y)
@@ -63,6 +65,8 @@ if __name__ == '__main__':
         args.output_dir = dpath
     else:
         args.output_dir = pargs.o
+
+    args.gpu = pargs.g
 
     with logger.session(args.output_dir):
         if pargs.t == 'train':
