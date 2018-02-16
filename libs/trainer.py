@@ -25,13 +25,15 @@ class Trainer(object):
         else:
             self.use_cuda = False
 
-        src, tgt = utils.get_corpus('./small_parallel_enja/train.ja',
-                                    './small_parallel_enja/train.en')
+        src, tgt = utils.get_corpus('./small_parallel_enja/train.src',
+                                    './small_parallel_enja/train.tgt')
 
         # build or load vocab
-        if args.load_vocab_dir:
-            logger.info('loading vocab from {}'.format(args.load_vocab_dir))
-            self.load_vocab()
+        if hasattr(args, 'load_vocab_dir'):
+            if args.load_vocab_dir:
+                lvd_ = args.load_vocab_dir
+                logger.info('loading vocab from {}'.format(lvd_))
+                self.load_vocab()
         else:
             logger.info('builing vocab')
             self.build_vocab(src, tgt)
@@ -40,8 +42,8 @@ class Trainer(object):
 
         logger.info('building dataset')
         self.train_data = utils.build_dataset(src, tgt, self.s_w2i, self.t_w2i)
-        src, tgt = utils.get_corpus('./small_parallel_enja/test.ja',
-                                    './small_parallel_enja/test.en')
+        src, tgt = utils.get_corpus('./small_parallel_enja/valid.src',
+                                    './small_parallel_enja/valid.tgt')
         self.test_data = utils.build_dataset(src, tgt, self.s_w2i, self.t_w2i)
 
         logger.info('preparing encoder and decoder')
@@ -52,7 +54,8 @@ class Trainer(object):
                                  args.bidirec)
         decoder = models.Decoder(len(self.t_w2i),
                                  args.embedding_size,
-                                 args.hidden_size * 2)
+                                 args.hidden_size * 2,
+                                 args.n_layers)
         logger.info('initializing weight')
         encoder.init_weight()
         decoder.init_weight()
@@ -84,9 +87,6 @@ class Trainer(object):
         for i, batch in enumerate(utils.get_batch(self.args.batch_size,
                                                   self.train_data)):
             srcs, tgts, s_len, t_len = utils.pad_to_batch(batch, s_w2i, t_w2i)
-            input_masks = torch.cat([Variable(ByteTensor(
-                tuple(map(lambda s: s == 0, t.data))))
-                for t in srcs]).view(srcs.size(0), -1)
             start_decode = Variable(LongTensor([[t_w2i['<s>']] *
                                                tgts.size(0)])).transpose(0, 1)
             self.encoder.zero_grad()
@@ -94,7 +94,7 @@ class Trainer(object):
             output, hidden_c = self.encoder(srcs, s_len)
 
             preds = self.decoder(start_decode, hidden_c,
-                                 tgts.size(1), output, input_masks, True)
+                                 tgts.size(1), output, True)
 
             loss = self.loss_function(preds, tgts.view(-1))
             losses.append(loss.data.tolist()[0])
@@ -128,7 +128,7 @@ class Trainer(object):
             else:
                 self.patient_es += 1
                 # lame
-                if self.patient_es > 3:
+                if self.patient_es > 300:
                     logger.info('early stopping')
                     break
 
